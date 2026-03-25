@@ -431,7 +431,9 @@ mod test {
         let (_admin, client, _contract_id) = setup(&env);
         let deal_id = 1u64;
 
-        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
+        let page = client
+            .list_receipts_by_deal(&deal_id, &10u32, &None)
+            .unwrap();
         assert_eq!(page.receipts.len(), 0);
         assert!(!page.has_next);
     }
@@ -454,10 +456,14 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
+            client
+                .create_receipt(&deal_id, &(i * 1000), &payer)
+                .unwrap();
         }
 
-        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
+        let page = client
+            .list_receipts_by_deal(&deal_id, &10u32, &None)
+            .unwrap();
         assert_eq!(page.receipts.len(), 5);
         assert!(!page.has_next);
     }
@@ -480,17 +486,23 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
+            client
+                .create_receipt(&deal_id, &(i * 1000), &payer)
+                .unwrap();
         }
 
         // First page: 10 receipts
-        let page1 = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
+        let page1 = client
+            .list_receipts_by_deal(&deal_id, &10u32, &None)
+            .unwrap();
         assert_eq!(page1.receipts.len(), 10);
         assert!(page1.has_next);
 
         // Second page: remaining 5 receipts
         let cursor1 = page1.next_cursor.clone();
-        let page2 = client.list_receipts_by_deal(&deal_id, &10u32, &Some(cursor1)).unwrap();
+        let page2 = client
+            .list_receipts_by_deal(&deal_id, &10u32, &Some(cursor1))
+            .unwrap();
         assert_eq!(page2.receipts.len(), 5);
         assert!(!page2.has_next);
 
@@ -521,7 +533,9 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
+            client
+                .create_receipt(&deal_id, &(i * 1000), &payer)
+                .unwrap();
         }
 
         // Collect all receipts across pages
@@ -529,7 +543,9 @@ mod test {
         let mut cursor = None;
 
         loop {
-            let page = client.list_receipts_by_deal(&deal_id, &10u32, &cursor).unwrap();
+            let page = client
+                .list_receipts_by_deal(&deal_id, &10u32, &cursor)
+                .unwrap();
 
             for receipt in page.receipts.iter() {
                 all_receipt_ids.push(receipt.id);
@@ -569,11 +585,15 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
+            client
+                .create_receipt(&deal_id, &(i * 1000), &payer)
+                .unwrap();
         }
 
         // Get all receipts in one call
-        let all_page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
+        let all_page = client
+            .list_receipts_by_deal(&deal_id, &100u32, &None)
+            .unwrap();
 
         // Get receipts in pages and verify ordering is consistent
         let mut cursor = None;
@@ -581,7 +601,9 @@ mod test {
         let mut prev_tx_id: Option<BytesN<32>> = None;
 
         loop {
-            let page = client.list_receipts_by_deal(&deal_id, &3u32, &cursor).unwrap();
+            let page = client
+                .list_receipts_by_deal(&deal_id, &3u32, &cursor)
+                .unwrap();
 
             for receipt in page.receipts.iter() {
                 // Verify ordering: timestamp should be >= previous
@@ -616,7 +638,9 @@ mod test {
         let mut paginated_ids: std::vec::Vec<u64> = std::vec::Vec::new();
         cursor = None;
         loop {
-            let page = client.list_receipts_by_deal(&deal_id, &3u32, &cursor).unwrap();
+            let page = client
+                .list_receipts_by_deal(&deal_id, &3u32, &cursor)
+                .unwrap();
             for receipt in page.receipts.iter() {
                 paginated_ids.push(receipt.id);
             }
@@ -655,11 +679,15 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
+            client
+                .create_receipt(&deal_id, &(i * 1000), &payer)
+                .unwrap();
         }
 
         // Get all receipts and verify they are ordered by tx_id when timestamps are equal
-        let all_page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
+        let all_page = client
+            .list_receipts_by_deal(&deal_id, &100u32, &None)
+            .unwrap();
         assert_eq!(all_page.receipts.len(), 5);
 
         // Verify all receipts have the same timestamp
@@ -682,17 +710,23 @@ mod test {
         }
 
         // Test pagination with same timestamp
-        let page1 = client.list_receipts_by_deal(&deal_id, &2u32, &None).unwrap();
+        let page1 = client
+            .list_receipts_by_deal(&deal_id, &2u32, &None)
+            .unwrap();
         assert_eq!(page1.receipts.len(), 2);
         assert!(page1.has_next);
 
         let cursor1 = page1.next_cursor.clone();
-        let page2 = client.list_receipts_by_deal(&deal_id, &2u32, &Some(cursor1)).unwrap();
+        let page2 = client
+            .list_receipts_by_deal(&deal_id, &2u32, &Some(cursor1))
+            .unwrap();
         assert_eq!(page2.receipts.len(), 2);
         assert!(page2.has_next);
 
         let cursor2 = page2.next_cursor.clone();
-        let page3 = client.list_receipts_by_deal(&deal_id, &2u32, &Some(cursor2)).unwrap();
+        let page3 = client
+            .list_receipts_by_deal(&deal_id, &2u32, &Some(cursor2))
+            .unwrap();
         assert_eq!(page3.receipts.len(), 1);
         assert!(!page3.has_next);
 
@@ -850,7 +884,9 @@ mod test {
         assert_eq!(receipt.deal_id, deal_id);
 
         // Verify receipt is stored and retrievable
-        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
+        let page = client
+            .list_receipts_by_deal(&deal_id, &10u32, &None)
+            .unwrap();
         assert_eq!(page.receipts.len(), 1);
         assert_eq!(page.receipts.get(0).unwrap().id, receipt.id);
     }
@@ -875,7 +911,9 @@ mod test {
         }]);
 
         // Should succeed with maximum i128 value
-        let receipt = client.create_receipt(&deal_id, &max_amount, &payer).unwrap();
+        let receipt = client
+            .create_receipt(&deal_id, &max_amount, &payer)
+            .unwrap();
         assert_eq!(receipt.amount, max_amount);
         assert_eq!(client.receipt_count(&deal_id), 1u64);
     }
@@ -909,14 +947,18 @@ mod test {
             assert_eq!(client.receipt_count(&deal_id), (i + 1) as u64);
 
             // Verify all previous receipts are still accessible
-            let page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
+            let page = client
+                .list_receipts_by_deal(&deal_id, &100u32, &None)
+                .unwrap();
             assert_eq!(page.receipts.len(), (i + 1) as u32);
         }
 
         // Final verification
         assert_eq!(client.receipt_count(&deal_id), 3u64);
 
-        let final_page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
+        let final_page = client
+            .list_receipts_by_deal(&deal_id, &100u32, &None)
+            .unwrap();
         assert_eq!(final_page.receipts.len(), 3);
 
         // Verify all amounts are correct
@@ -954,7 +996,9 @@ mod test {
                 sub_invokes: &[],
             },
         }]);
-        client.create_receipt(&deal_id_1, &1000i128, &payer).unwrap();
+        client
+            .create_receipt(&deal_id_1, &1000i128, &payer)
+            .unwrap();
 
         // Create receipts for deal 2
         env.mock_auths(&[MockAuth {
@@ -966,14 +1010,20 @@ mod test {
                 sub_invokes: &[],
             },
         }]);
-        client.create_receipt(&deal_id_2, &2000i128, &payer).unwrap();
+        client
+            .create_receipt(&deal_id_2, &2000i128, &payer)
+            .unwrap();
 
         // Verify isolation
         assert_eq!(client.receipt_count(&deal_id_1), 1u64);
         assert_eq!(client.receipt_count(&deal_id_2), 1u64);
 
-        let page_1 = client.list_receipts_by_deal(&deal_id_1, &10u32, &None).unwrap();
-        let page_2 = client.list_receipts_by_deal(&deal_id_2, &10u32, &None).unwrap();
+        let page_1 = client
+            .list_receipts_by_deal(&deal_id_1, &10u32, &None)
+            .unwrap();
+        let page_2 = client
+            .list_receipts_by_deal(&deal_id_2, &10u32, &None)
+            .unwrap();
 
         assert_eq!(page_1.receipts.len(), 1);
         assert_eq!(page_2.receipts.len(), 1);
