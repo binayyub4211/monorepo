@@ -53,7 +53,7 @@ fn test_metadata_hash_golden_vector_v1() {
 
     let admin = Address::generate(&env);
     let operator = Address::generate(&env);
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
     env.mock_all_auths();
 
     let token = Address::generate(&env);
@@ -103,7 +103,7 @@ fn test_metadata_hash_invalid_rejected() {
 
     let admin = Address::generate(&env);
     let operator = Address::generate(&env);
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
     env.mock_all_auths();
 
     let token = Address::generate(&env);
@@ -161,7 +161,7 @@ fn test_receipt_struct_creation() {
     let receipt = Receipt {
         tx_id: tx_id.clone(),
         tx_type: Symbol::new(&env, "rent_payment"),
-        amount_usdc: 1000_0000000, // 1000 USDC (7 decimals)
+        amount_usdc: 10_000_000_000, // 1000 USDC (7 decimals)
         token: token.clone(),
         deal_id: deal_id.clone(),
         listing_id: None,
@@ -178,7 +178,7 @@ fn test_receipt_struct_creation() {
     // Verify receipt fields
     assert_eq!(receipt.tx_id, tx_id);
     assert_eq!(receipt.external_ref, tx_id);
-    assert_eq!(receipt.amount_usdc, 1000_0000000);
+    assert_eq!(receipt.amount_usdc, 10_000_000_000);
     assert_eq!(receipt.timestamp, 1234567890);
 }
 
@@ -400,7 +400,7 @@ fn test_init_success() {
     let operator = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Verify admin is stored by checking storage directly
     let stored_admin: Address = env.as_contract(&contract_id, || {
@@ -418,7 +418,7 @@ fn test_init_success() {
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 
     // Verify contract version is set
     let version: u32 = env.as_contract(&contract_id, || {
@@ -440,7 +440,7 @@ fn test_init_already_initialized() {
     let operator = Address::generate(&env);
 
     // Initialize the contract first time
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Try to initialize again
     let admin2 = Address::generate(&env);
@@ -475,7 +475,7 @@ fn test_init_with_same_admin_and_operator() {
     let address = Address::generate(&env);
 
     // Initialize with same address for both admin and operator
-    client.try_init(&address, &address).unwrap();
+    let _ = client.try_init(&address, &address).unwrap();
 
     // Verify both are stored correctly
     let stored_admin: Address = env.as_contract(&contract_id, || {
@@ -501,19 +501,19 @@ fn test_pause_success() {
     let operator = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock admin authentication
     env.mock_all_auths();
 
     // Pause the contract
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
 
     // Verify paused state is true
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 }
 
 #[test]
@@ -527,7 +527,7 @@ fn test_pause_not_authorized() {
     let unauthorized = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock authentication for unauthorized address
     env.mock_all_auths();
@@ -543,7 +543,7 @@ fn test_pause_not_authorized() {
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 }
 
 #[test]
@@ -556,28 +556,28 @@ fn test_pause_idempotent() {
     let operator = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock admin authentication
     env.mock_all_auths();
 
     // Pause the contract first time
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
 
     // Verify paused state is true
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 
     // Pause again (should succeed without error)
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
 
     // Verify paused state is still true
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 }
 
 #[test]
@@ -590,28 +590,28 @@ fn test_unpause_success() {
     let operator = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock admin authentication
     env.mock_all_auths();
 
     // Pause the contract first
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
 
     // Verify paused state is true
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 
     // Unpause the contract
-    client.try_unpause(&admin).unwrap();
+    let _ = client.try_unpause(&admin).unwrap();
 
     // Verify paused state is false
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 }
 
 #[test]
@@ -625,13 +625,13 @@ fn test_unpause_not_authorized() {
     let unauthorized = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock authentication
     env.mock_all_auths();
 
     // Pause the contract first
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
 
     // Try to unpause with unauthorized address
     let result = client.try_unpause(&unauthorized);
@@ -644,7 +644,7 @@ fn test_unpause_not_authorized() {
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 }
 
 #[test]
@@ -657,28 +657,28 @@ fn test_unpause_idempotent() {
     let operator = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock admin authentication
     env.mock_all_auths();
 
     // Contract starts unpaused, unpause should succeed
-    client.try_unpause(&admin).unwrap();
+    let _ = client.try_unpause(&admin).unwrap();
 
     // Verify paused state is false
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 
     // Unpause again (should succeed without error)
-    client.try_unpause(&admin).unwrap();
+    let _ = client.try_unpause(&admin).unwrap();
 
     // Verify paused state is still false
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 }
 
 #[test]
@@ -691,7 +691,7 @@ fn test_pause_unpause_cycle() {
     let operator = Address::generate(&env);
 
     // Initialize the contract
-    client.try_init(&admin, &operator).unwrap();
+    let _ = client.try_init(&admin, &operator).unwrap();
 
     // Mock admin authentication
     env.mock_all_auths();
@@ -700,28 +700,28 @@ fn test_pause_unpause_cycle() {
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 
     // Pause
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 
     // Unpause
-    client.try_unpause(&admin).unwrap();
+    let _ = client.try_unpause(&admin).unwrap();
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, false);
+    assert!(!paused);
 
     // Pause again
-    client.try_pause(&admin).unwrap();
+    let _ = client.try_pause(&admin).unwrap();
     let paused: bool = env.as_contract(&contract_id, || {
         env.storage().instance().get(&StorageKey::Paused).unwrap()
     });
-    assert_eq!(paused, true);
+    assert!(paused);
 }
 
 // Golden test vectors - shared with backend tests

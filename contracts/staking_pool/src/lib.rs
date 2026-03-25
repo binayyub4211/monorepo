@@ -786,7 +786,7 @@ mod test {
     #[test]
     fn stake_fails_when_paused() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
 
         // Pause the contract
         env.mock_auths(&[MockAuth {
@@ -810,7 +810,7 @@ mod test {
     #[test]
     fn operator_stake_fails_when_paused() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
         let operator = Address::generate(&env);
 
         // Set operator
@@ -869,7 +869,7 @@ mod test {
     #[test]
     fn unstake_fails_when_paused() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
 
         // Pause the contract
         env.mock_auths(&[MockAuth {
@@ -1181,7 +1181,7 @@ mod test {
     #[test]
     fn operator_can_authorize_stake_and_unstake_calls() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
         let operator = Address::generate(&env);
 
         // Set operator
@@ -1367,7 +1367,7 @@ mod test {
     #[test]
     fn test_stake_authorization() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
         let operator = Address::generate(&env);
 
         // Set operator - now only operator can authorize stake/unstake
@@ -1405,7 +1405,7 @@ mod test {
     #[test]
     fn test_unstake_authorization() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
         let operator = Address::generate(&env);
 
         // Set operator - now only operator can authorize stake/unstake
@@ -1443,7 +1443,7 @@ mod test {
     #[test]
     fn test_pause_authorization() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
 
         // Test that pause requires admin authorization
         let non_admin = Address::generate(&env);
@@ -1475,7 +1475,7 @@ mod test {
     #[test]
     fn test_pause_blocks_staking() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
 
         // Pause the contract
         env.mock_auths(&[MockAuth {
@@ -1574,7 +1574,7 @@ mod test {
     #[test]
     fn test_balance_isolation() {
         let env = Env::default();
-        let (contract_id, client, admin, user, token_id) = setup_contract(&env);
+        let (contract_id, client, admin, _user, _token_id) = setup_contract(&env);
         let user2 = Address::generate(&env);
 
         // Verify initial balances are isolated
@@ -1598,7 +1598,7 @@ mod test {
     #[test]
     fn test_compute_metadata_hash_basic_stake() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1635,7 +1635,7 @@ mod test {
     #[test]
     fn test_compute_metadata_hash_with_optional_fields() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let mut metadata = Map::new(&env);
         metadata.set(
@@ -1668,7 +1668,7 @@ mod test {
     #[test]
     fn test_verify_metadata_hash_success() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1693,7 +1693,7 @@ mod test {
     #[test]
     fn test_verify_metadata_hash_failure() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1718,7 +1718,7 @@ mod test {
     #[test]
     fn test_metadata_hash_deterministic_same_input() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1743,7 +1743,7 @@ mod test {
     #[test]
     fn test_metadata_hash_different_inputs_produce_different_hashes() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input1 = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1776,7 +1776,7 @@ mod test {
     #[test]
     fn test_metadata_hash_rejects_zero_amount() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1799,7 +1799,7 @@ mod test {
     #[test]
     fn test_metadata_hash_rejects_negative_amount() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         let input = ReceiptInput {
             tx_type: Symbol::new(&env, "stake"),
@@ -1826,7 +1826,7 @@ mod test {
     #[test]
     fn test_golden_vector_1_basic_stake() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         // Fixed test values for deterministic hash
         env.ledger().set_timestamp(1620000000u64);
@@ -1854,7 +1854,7 @@ mod test {
     #[test]
     fn test_golden_vector_2_with_metadata() {
         let env = Env::default();
-        let (_contract_id, client, _admin, user, token_id) = setup_contract(&env);
+        let (_contract_id, client, _admin, _user, _token_id) = setup_contract(&env);
 
         env.ledger().set_timestamp(1620000000u64);
 
