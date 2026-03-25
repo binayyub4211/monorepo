@@ -215,7 +215,7 @@ impl RentPayments {
             (receipt_id, amount, payer_clone),
         );
 
-        receipt
+        Ok(receipt)
     }
 
     /// List receipts for a deal with cursor-based pagination
@@ -236,7 +236,8 @@ impl RentPayments {
     /// 1. `timestamp` (ascending)
     /// 2. `tx_id` (ascending, as bytes comparison)
     ///
-    /// This ensures stable, deterministic ordering even if multiple receipts have the same timestamp.
+    /// This ensures stable, deterministic ordering even if multiple
+    /// receipts have the same timestamp.
     pub fn list_receipts_by_deal(
         env: Env,
         deal_id: DealId,
