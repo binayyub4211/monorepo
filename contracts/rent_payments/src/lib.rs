@@ -78,7 +78,7 @@ fn get_admin(env: &Env) -> Result<Address, Error> {
 fn require_admin(env: &Env) -> Result<(), Error> {
     let admin = get_admin(env)?;
     admin.require_auth();
-    Ok(())
+    Ok(()) // Explicit Ok return
 }
 
 fn get_receipts(env: &Env, deal_id: DealId) -> Vec<Receipt> {
@@ -168,7 +168,7 @@ impl RentPayments {
             .set(&DataKey::ContractVersion, &1u32);
         env.events()
             .publish((Symbol::new(&env, "init"),), (admin, 1u32));
-        Ok(())
+        Ok(()) // Explicit Ok return
     }
 
     pub fn contract_version(env: Env) -> u32 {
