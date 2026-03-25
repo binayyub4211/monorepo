@@ -54,19 +54,31 @@ pub enum DataKey {
     ReceiptCount(DealId),
 }
 
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum Error {
+    NotInitialized = 1,
+    AlreadyInitialized = 2,
+    InvalidAmount = 3,
+    InvalidLimit = 4,
+    NotAdmin = 5,
+}
+
 #[contract]
 pub struct RentPayments;
 
-fn get_admin(env: &Env) -> Address {
+fn get_admin(env: &Env) -> Result<Address, Error> {
     env.storage()
         .instance()
         .get::<_, Address>(&DataKey::Admin)
-        .expect("admin not set")
+        .ok_or(Error::NotInitialized)
 }
 
-fn require_admin(env: &Env) {
-    let admin = get_admin(env);
+fn require_admin(env: &Env) -> Result<(), Error> {
+    let admin = get_admin(env)?;
     admin.require_auth();
+    Ok(())
 }
 
 fn get_receipts(env: &Env, deal_id: DealId) -> Vec<Receipt> {
@@ -146,9 +158,9 @@ fn get_tx_id(env: &Env) -> TxId {
 
 #[contractimpl]
 impl RentPayments {
-    pub fn init(env: Env, admin: Address) {
+    pub fn init(env: Env, admin: Address) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
-            panic!("already initialized");
+            return Err(Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -156,6 +168,7 @@ impl RentPayments {
             .set(&DataKey::ContractVersion, &1u32);
         env.events()
             .publish((Symbol::new(&env, "init"),), (admin, 1u32));
+        Ok(())
     }
 
     pub fn contract_version(env: Env) -> u32 {
@@ -167,11 +180,16 @@ impl RentPayments {
 
     /// Create a new receipt for a deal
     /// This function records a monthly payment receipt
-    pub fn create_receipt(env: Env, deal_id: DealId, amount: i128, payer: Address) -> Receipt {
-        require_admin(&env);
+    pub fn create_receipt(
+        env: Env,
+        deal_id: DealId,
+        amount: i128,
+        payer: Address,
+    ) -> Result<Receipt, Error> {
+        require_admin(&env)?;
 
         if amount <= 0 {
-            panic!("amount must be positive");
+            return Err(Error::InvalidAmount);
         }
 
         let receipt_id = increment_receipt_count(&env, deal_id);
@@ -224,9 +242,9 @@ impl RentPayments {
         deal_id: DealId,
         limit: u32,
         cursor: Option<Cursor>,
-    ) -> ReceiptPage {
+    ) -> Result<ReceiptPage, Error> {
         if limit == 0 || limit > 100 {
-            panic!("limit must be between 1 and 100");
+            return Err(Error::InvalidLimit);
         }
 
         let receipts = get_receipts(&env, deal_id);
@@ -355,11 +373,11 @@ impl RentPayments {
             )
         };
 
-        ReceiptPage {
+        Ok(ReceiptPage {
             receipts: page_receipts,
             has_next,
             next_cursor,
-        }
+        })
     }
 
     /// Get the total number of receipts for a deal
@@ -380,10 +398,9 @@ mod test {
 
     fn setup(env: &Env) -> (Address, RentPaymentsClient<'_>, soroban_sdk::Address) {
         let contract_id = env.register_contract(None, RentPayments);
-        // Note: register_contract is deprecated but still works in SDK 22.0.7
         let client = RentPaymentsClient::new(env, &contract_id);
         let admin = Address::generate(env);
-        client.init(&admin);
+        client.init(&admin).unwrap();
         (admin, client, contract_id)
     }
 
@@ -393,19 +410,19 @@ mod test {
         let contract_id = env.register_contract(None, RentPayments);
         let client = RentPaymentsClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
-        client.init(&admin);
+        client.init(&admin).unwrap();
         assert_eq!(client.contract_version(), 1u32);
     }
 
     #[test]
-    #[should_panic(expected = "already initialized")]
     fn init_cannot_be_called_twice() {
         let env = Env::default();
         let contract_id = env.register_contract(None, RentPayments);
         let client = RentPaymentsClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
-        client.init(&admin);
-        client.init(&admin);
+        client.init(&admin).unwrap();
+        let result = client.init(&admin);
+        assert_eq!(result, Err(Error::AlreadyInitialized));
     }
 
     #[test]
@@ -414,7 +431,7 @@ mod test {
         let (_admin, client, _contract_id) = setup(&env);
         let deal_id = 1u64;
 
-        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None);
+        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
         assert_eq!(page.receipts.len(), 0);
         assert!(!page.has_next);
     }
@@ -437,10 +454,10 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer);
+            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
         }
 
-        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None);
+        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
         assert_eq!(page.receipts.len(), 5);
         assert!(!page.has_next);
     }
@@ -463,17 +480,17 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer);
+            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
         }
 
         // First page: 10 receipts
-        let page1 = client.list_receipts_by_deal(&deal_id, &10u32, &None);
+        let page1 = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
         assert_eq!(page1.receipts.len(), 10);
         assert!(page1.has_next);
 
         // Second page: remaining 5 receipts
         let cursor1 = page1.next_cursor.clone();
-        let page2 = client.list_receipts_by_deal(&deal_id, &10u32, &Some(cursor1));
+        let page2 = client.list_receipts_by_deal(&deal_id, &10u32, &Some(cursor1)).unwrap();
         assert_eq!(page2.receipts.len(), 5);
         assert!(!page2.has_next);
 
@@ -504,7 +521,7 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer);
+            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
         }
 
         // Collect all receipts across pages
@@ -512,7 +529,7 @@ mod test {
         let mut cursor = None;
 
         loop {
-            let page = client.list_receipts_by_deal(&deal_id, &10u32, &cursor);
+            let page = client.list_receipts_by_deal(&deal_id, &10u32, &cursor).unwrap();
 
             for receipt in page.receipts.iter() {
                 all_receipt_ids.push(receipt.id);
@@ -552,11 +569,11 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer);
+            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
         }
 
         // Get all receipts in one call
-        let all_page = client.list_receipts_by_deal(&deal_id, &100u32, &None);
+        let all_page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
 
         // Get receipts in pages and verify ordering is consistent
         let mut cursor = None;
@@ -564,7 +581,7 @@ mod test {
         let mut prev_tx_id: Option<BytesN<32>> = None;
 
         loop {
-            let page = client.list_receipts_by_deal(&deal_id, &3u32, &cursor);
+            let page = client.list_receipts_by_deal(&deal_id, &3u32, &cursor).unwrap();
 
             for receipt in page.receipts.iter() {
                 // Verify ordering: timestamp should be >= previous
@@ -599,7 +616,7 @@ mod test {
         let mut paginated_ids: std::vec::Vec<u64> = std::vec::Vec::new();
         cursor = None;
         loop {
-            let page = client.list_receipts_by_deal(&deal_id, &3u32, &cursor);
+            let page = client.list_receipts_by_deal(&deal_id, &3u32, &cursor).unwrap();
             for receipt in page.receipts.iter() {
                 paginated_ids.push(receipt.id);
             }
@@ -638,11 +655,11 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&deal_id, &(i * 1000), &payer);
+            client.create_receipt(&deal_id, &(i * 1000), &payer).unwrap();
         }
 
         // Get all receipts and verify they are ordered by tx_id when timestamps are equal
-        let all_page = client.list_receipts_by_deal(&deal_id, &100u32, &None);
+        let all_page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
         assert_eq!(all_page.receipts.len(), 5);
 
         // Verify all receipts have the same timestamp
@@ -665,17 +682,17 @@ mod test {
         }
 
         // Test pagination with same timestamp
-        let page1 = client.list_receipts_by_deal(&deal_id, &2u32, &None);
+        let page1 = client.list_receipts_by_deal(&deal_id, &2u32, &None).unwrap();
         assert_eq!(page1.receipts.len(), 2);
         assert!(page1.has_next);
 
         let cursor1 = page1.next_cursor.clone();
-        let page2 = client.list_receipts_by_deal(&deal_id, &2u32, &Some(cursor1));
+        let page2 = client.list_receipts_by_deal(&deal_id, &2u32, &Some(cursor1)).unwrap();
         assert_eq!(page2.receipts.len(), 2);
         assert!(page2.has_next);
 
         let cursor2 = page2.next_cursor.clone();
-        let page3 = client.list_receipts_by_deal(&deal_id, &2u32, &Some(cursor2));
+        let page3 = client.list_receipts_by_deal(&deal_id, &2u32, &Some(cursor2)).unwrap();
         assert_eq!(page3.receipts.len(), 1);
         assert!(!page3.has_next);
 
@@ -703,23 +720,23 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "limit must be between 1 and 100")]
     fn test_list_receipts_by_deal_invalid_limit_zero() {
         let env = Env::default();
         let (_admin, client, _contract_id) = setup(&env);
         let deal_id = 1u64;
 
-        client.list_receipts_by_deal(&deal_id, &0u32, &None);
+        let result = client.list_receipts_by_deal(&deal_id, &0u32, &None);
+        assert_eq!(result, Err(Error::InvalidLimit));
     }
 
     #[test]
-    #[should_panic(expected = "limit must be between 1 and 100")]
     fn test_list_receipts_by_deal_invalid_limit_too_large() {
         let env = Env::default();
         let (_admin, client, _contract_id) = setup(&env);
         let deal_id = 1u64;
 
-        client.list_receipts_by_deal(&deal_id, &101u32, &None);
+        let result = client.list_receipts_by_deal(&deal_id, &101u32, &None);
+        assert_eq!(result, Err(Error::InvalidLimit));
     }
 
     // ============================================================================
@@ -727,7 +744,6 @@ mod test {
     // ============================================================================
 
     #[test]
-    #[should_panic(expected = "amount must be positive")]
     fn create_receipt_fails_with_zero_amount() {
         let env = Env::default();
         let (admin, client, contract_id) = setup(&env);
@@ -744,11 +760,11 @@ mod test {
             },
         }]);
 
-        client.create_receipt(&deal_id, &0i128, &payer);
+        let result = client.create_receipt(&deal_id, &0i128, &payer);
+        assert_eq!(result, Err(Error::InvalidAmount));
     }
 
     #[test]
-    #[should_panic(expected = "amount must be positive")]
     fn create_receipt_fails_with_negative_amount() {
         let env = Env::default();
         let (admin, client, contract_id) = setup(&env);
@@ -765,11 +781,12 @@ mod test {
             },
         }]);
 
-        client.create_receipt(&deal_id, &-100i128, &payer);
+        let result = client.create_receipt(&deal_id, &-100i128, &payer);
+        assert_eq!(result, Err(Error::InvalidAmount));
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic] // require_auth still panics/traps
     fn create_receipt_fails_without_admin_auth() {
         let env = Env::default();
         let (_admin, client, contract_id) = setup(&env);
@@ -787,7 +804,19 @@ mod test {
             },
         }]);
 
-        client.create_receipt(&deal_id, &1000i128, &payer);
+        let _ = client.create_receipt(&deal_id, &1000i128, &payer);
+    }
+
+    #[test]
+    fn test_not_initialized_error() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, RentPayments);
+        let client = RentPaymentsClient::new(&env, &contract_id);
+        let deal_id = 1u64;
+        let payer = Address::generate(&env);
+
+        let result = client.create_receipt(&deal_id, &1000i128, &payer);
+        assert_eq!(result, Err(Error::NotInitialized));
     }
 
     #[test]
@@ -812,7 +841,7 @@ mod test {
         }]);
 
         // Create receipt - this should update state before any external calls
-        let receipt = client.create_receipt(&deal_id, &1000i128, &payer);
+        let receipt = client.create_receipt(&deal_id, &1000i128, &payer).unwrap();
 
         // Verify state was updated correctly
         assert_eq!(client.receipt_count(&deal_id), 1u64);
@@ -821,7 +850,7 @@ mod test {
         assert_eq!(receipt.deal_id, deal_id);
 
         // Verify receipt is stored and retrievable
-        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None);
+        let page = client.list_receipts_by_deal(&deal_id, &10u32, &None).unwrap();
         assert_eq!(page.receipts.len(), 1);
         assert_eq!(page.receipts.get(0).unwrap().id, receipt.id);
     }
@@ -846,7 +875,7 @@ mod test {
         }]);
 
         // Should succeed with maximum i128 value
-        let receipt = client.create_receipt(&deal_id, &max_amount, &payer);
+        let receipt = client.create_receipt(&deal_id, &max_amount, &payer).unwrap();
         assert_eq!(receipt.amount, max_amount);
         assert_eq!(client.receipt_count(&deal_id), 1u64);
     }
@@ -873,21 +902,21 @@ mod test {
                 },
             }]);
 
-            let receipt = client.create_receipt(&deal_id, &amount, &payer);
+            let receipt = client.create_receipt(&deal_id, &amount, &payer).unwrap();
             receipt_ids.push(receipt.id);
 
             // Verify state after each creation
             assert_eq!(client.receipt_count(&deal_id), (i + 1) as u64);
 
             // Verify all previous receipts are still accessible
-            let page = client.list_receipts_by_deal(&deal_id, &100u32, &None);
+            let page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
             assert_eq!(page.receipts.len(), (i + 1) as u32);
         }
 
         // Final verification
         assert_eq!(client.receipt_count(&deal_id), 3u64);
 
-        let final_page = client.list_receipts_by_deal(&deal_id, &100u32, &None);
+        let final_page = client.list_receipts_by_deal(&deal_id, &100u32, &None).unwrap();
         assert_eq!(final_page.receipts.len(), 3);
 
         // Verify all amounts are correct
@@ -925,7 +954,7 @@ mod test {
                 sub_invokes: &[],
             },
         }]);
-        client.create_receipt(&deal_id_1, &1000i128, &payer);
+        client.create_receipt(&deal_id_1, &1000i128, &payer).unwrap();
 
         // Create receipts for deal 2
         env.mock_auths(&[MockAuth {
@@ -937,14 +966,14 @@ mod test {
                 sub_invokes: &[],
             },
         }]);
-        client.create_receipt(&deal_id_2, &2000i128, &payer);
+        client.create_receipt(&deal_id_2, &2000i128, &payer).unwrap();
 
         // Verify isolation
         assert_eq!(client.receipt_count(&deal_id_1), 1u64);
         assert_eq!(client.receipt_count(&deal_id_2), 1u64);
 
-        let page_1 = client.list_receipts_by_deal(&deal_id_1, &10u32, &None);
-        let page_2 = client.list_receipts_by_deal(&deal_id_2, &10u32, &None);
+        let page_1 = client.list_receipts_by_deal(&deal_id_1, &10u32, &None).unwrap();
+        let page_2 = client.list_receipts_by_deal(&deal_id_2, &10u32, &None).unwrap();
 
         assert_eq!(page_1.receipts.len(), 1);
         assert_eq!(page_2.receipts.len(), 1);
@@ -969,7 +998,7 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&1u64, &(i * 1000), &payer);
+            client.create_receipt(&1u64, &(i * 1000), &payer).unwrap();
         }
 
         // Create receipts for deal 2
@@ -983,15 +1012,15 @@ mod test {
                     sub_invokes: &[],
                 },
             }]);
-            client.create_receipt(&2u64, &(i * 2000), &payer);
+            client.create_receipt(&2u64, &(i * 2000), &payer).unwrap();
         }
 
         // Verify deal 1 has 5 receipts
-        let page1 = client.list_receipts_by_deal(&1u64, &10u32, &None);
+        let page1 = client.list_receipts_by_deal(&1u64, &10u32, &None).unwrap();
         assert_eq!(page1.receipts.len(), 5);
 
         // Verify deal 2 has 3 receipts
-        let page2 = client.list_receipts_by_deal(&2u64, &10u32, &None);
+        let page2 = client.list_receipts_by_deal(&2u64, &10u32, &None).unwrap();
         assert_eq!(page2.receipts.len(), 3);
     }
 }
