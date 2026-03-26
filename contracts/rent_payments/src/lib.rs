@@ -50,6 +50,7 @@ pub struct ReceiptPage {
 #[derive(Clone)]
 pub enum DataKey {
     ContractVersion,
+    Paused,
     Admin,
     Deals,
     Receipts(DealId),
@@ -59,18 +60,29 @@ pub enum DataKey {
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
-pub enum Error {
-    NotInitialized = 1,
-    AlreadyInitialized = 2,
-    InvalidAmount = 3,
-    InvalidLimit = 4,
-    NotAdmin = 5,
+pub enum ContractError {
+    AlreadyInitialized = 1,
+    InvalidAmount = 2,
+    InvalidLimit = 3,
 }
 
 #[contract]
 pub struct RentPayments;
 
-fn get_admin(env: &Env) -> Result<Address, Error> {
+fn is_paused(env: &Env) -> bool {
+    env.storage()
+        .instance()
+        .get::<_, bool>(&DataKey::Paused)
+        .unwrap_or(false)
+}
+
+fn require_not_paused(env: &Env) {
+    if is_paused(env) {
+        panic!("contract is paused");
+    }
+}
+
+fn get_admin(env: &Env) -> Address {
     env.storage()
         .instance()
         .get::<_, Address>(&DataKey::Admin)
@@ -160,9 +172,9 @@ fn get_tx_id(env: &Env) -> TxId {
 
 #[contractimpl]
 impl RentPayments {
-    pub fn init(env: Env, admin: Address) -> Result<(), Error> {
+    pub fn init(env: Env, admin: Address) -> Result<(), ContractError> {
         if env.storage().instance().has(&DataKey::Admin) {
-            return Err(Error::AlreadyInitialized);
+            return Err(ContractError::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -170,7 +182,7 @@ impl RentPayments {
             .set(&DataKey::ContractVersion, &1u32);
         env.events()
             .publish((Symbol::new(&env, "init"),), (admin, 1u32));
-        Ok(()) // Explicit Ok return
+        Ok(())
     }
 
     pub fn contract_version(env: Env) -> u32 {
@@ -180,6 +192,39 @@ impl RentPayments {
             .unwrap_or(0u32)
     }
 
+    pub fn version(env: Env) -> u32 {
+        Self::contract_version(env)
+    }
+
+    pub fn pause(env: Env) {
+        require_admin(&env);
+        env.storage().instance().set(&DataKey::Paused, &true);
+        env.events().publish(
+            (
+                Symbol::new(&env, "rent_payments"),
+                Symbol::new(&env, "paused"),
+            ),
+            (),
+        );
+    }
+
+    pub fn unpause(env: Env) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Paused, &false);
+        env.events().publish(
+            (
+                Symbol::new(&env, "rent_payments"),
+                Symbol::new(&env, "unpaused"),
+            ),
+            (),
+        );
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        is_paused(&env)
+    }
+
     /// Create a new receipt for a deal
     /// This function records a monthly payment receipt
     pub fn create_receipt(
@@ -187,11 +232,12 @@ impl RentPayments {
         deal_id: DealId,
         amount: i128,
         payer: Address,
-    ) -> Result<Receipt, Error> {
-        require_admin(&env)?;
+    ) -> Result<Receipt, ContractError> {
+        require_admin(&env);
+        require_not_paused(&env);
 
         if amount <= 0 {
-            return Err(Error::InvalidAmount);
+            return Err(ContractError::InvalidAmount);
         }
 
         let receipt_id = increment_receipt_count(&env, deal_id);
@@ -245,9 +291,9 @@ impl RentPayments {
         deal_id: DealId,
         limit: u32,
         cursor: Option<Cursor>,
-    ) -> Result<ReceiptPage, Error> {
+    ) -> Result<ReceiptPage, ContractError> {
         if limit == 0 || limit > 100 {
-            return Err(Error::InvalidLimit);
+            return Err(ContractError::InvalidLimit);
         }
 
         let receipts = get_receipts(&env, deal_id);
@@ -418,14 +464,25 @@ mod test {
     }
 
     #[test]
+    fn version_matches_contract_version() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, RentPayments);
+        let client = RentPaymentsClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        client.init(&admin);
+        assert_eq!(client.version(), 1u32);
+        assert_eq!(client.version(), client.contract_version());
+    }
+
+    #[test]
     fn init_cannot_be_called_twice() {
         let env = Env::default();
         let contract_id = env.register_contract(None, RentPayments);
         let client = RentPaymentsClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
-        client.init(&admin).unwrap();
-        let result = client.init(&admin);
-        assert_eq!(result, Err(Error::AlreadyInitialized));
+        client.init(&admin);
+        let err = client.try_init(&admin).unwrap_err().unwrap();
+        assert_eq!(err, ContractError::AlreadyInitialized);
     }
 
     #[test]
@@ -762,8 +819,11 @@ mod test {
         let (_admin, client, _contract_id) = setup(&env);
         let deal_id = 1u64;
 
-        let result = client.list_receipts_by_deal(&deal_id, &0u32, &None);
-        assert_eq!(result, Err(Error::InvalidLimit));
+        let err = client
+            .try_list_receipts_by_deal(&deal_id, &0u32, &None)
+            .unwrap_err()
+            .unwrap();
+        assert_eq!(err, ContractError::InvalidLimit);
     }
 
     #[test]
@@ -772,8 +832,11 @@ mod test {
         let (_admin, client, _contract_id) = setup(&env);
         let deal_id = 1u64;
 
-        let result = client.list_receipts_by_deal(&deal_id, &101u32, &None);
-        assert_eq!(result, Err(Error::InvalidLimit));
+        let err = client
+            .try_list_receipts_by_deal(&deal_id, &101u32, &None)
+            .unwrap_err()
+            .unwrap();
+        assert_eq!(err, ContractError::InvalidLimit);
     }
 
     // ============================================================================
@@ -797,8 +860,11 @@ mod test {
             },
         }]);
 
-        let result = client.create_receipt(&deal_id, &0i128, &payer);
-        assert_eq!(result, Err(Error::InvalidAmount));
+        let err = client
+            .try_create_receipt(&deal_id, &0i128, &payer)
+            .unwrap_err()
+            .unwrap();
+        assert_eq!(err, ContractError::InvalidAmount);
     }
 
     #[test]
@@ -818,8 +884,11 @@ mod test {
             },
         }]);
 
-        let result = client.create_receipt(&deal_id, &-100i128, &payer);
-        assert_eq!(result, Err(Error::InvalidAmount));
+        let err = client
+            .try_create_receipt(&deal_id, &-100i128, &payer)
+            .unwrap_err()
+            .unwrap();
+        assert_eq!(err, ContractError::InvalidAmount);
     }
 
     #[test]
@@ -1075,5 +1144,39 @@ mod test {
         // Verify deal 2 has 3 receipts
         let page2 = client.list_receipts_by_deal(&2u64, &10u32, &None).unwrap();
         assert_eq!(page2.receipts.len(), 3);
+    }
+
+    #[test]
+    #[should_panic(expected = "contract is paused")]
+    fn test_pause() {
+        let env = Env::default();
+        let (admin, client, contract_id) = setup(&env);
+        let payer = Address::generate(&env);
+
+        // Pause the contract
+        env.mock_auths(&[MockAuth {
+            address: &admin,
+            invoke: &MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "pause",
+                args: ().into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        client.pause();
+
+        assert_eq!(client.is_paused(), true);
+
+        // Try to create a receipt while paused (should panic)
+        env.mock_auths(&[MockAuth {
+            address: &admin,
+            invoke: &MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "create_receipt",
+                args: (1u64, 1000i128, payer.clone()).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        client.create_receipt(&1u64, &1000, &payer);
     }
 }

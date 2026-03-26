@@ -11,7 +11,10 @@ use crate::{
     TransactionReceiptContract, TransactionReceiptContractClient, ALLOWED_SOURCES,
     ALLOWED_TX_TYPES,
 };
-use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, String, Symbol};
+use soroban_sdk::{
+    testutils::{Address as _, Events as _},
+    Address, Bytes, BytesN, Env, IntoVal, String, Symbol, TryFromVal, TryIntoVal,
+};
 use std::string::String as StdString;
 
 #[test]
@@ -133,6 +136,57 @@ fn test_metadata_hash_invalid_rejected() {
         .unwrap_err()
         .unwrap();
     assert_eq!(err, ContractError::InvalidMetadataHash);
+}
+
+#[test]
+fn test_metadata_hash_optional_none_is_accepted() {
+    let env = Env::default();
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+    client.try_init(&admin, &operator).unwrap();
+    env.mock_all_auths();
+
+    let token = Address::generate(&env);
+    let input = ReceiptInput {
+        external_ref_source: Symbol::new(&env, "paystack"),
+        external_ref: String::from_str(&env, "meta_none_ok"),
+        tx_type: Symbol::new(&env, "CONVERSION"),
+        amount_usdc: 1_000_000i128,
+        token,
+        deal_id: String::from_str(&env, "deal_meta_none"),
+        listing_id: None,
+        from: None,
+        to: None,
+        amount_ngn: None,
+        fx_rate_ngn_per_usdc: None,
+        fx_provider: None,
+        metadata_hash: None,
+    };
+
+    let tx_id = client
+        .try_record_receipt(&operator, &input)
+        .unwrap()
+        .unwrap();
+    let receipt = client.get_receipt(&tx_id).unwrap();
+    assert_eq!(receipt.metadata_hash, None);
+}
+
+#[test]
+fn test_metadata_hash_invalid_length_rejected_at_type_boundary() {
+    let env = Env::default();
+
+    // Contract input requires Option<BytesN<32>>.
+    // A non-32-byte payload is rejected during Soroban value decoding/conversion.
+    let short_val: soroban_sdk::Val = Bytes::from_slice(&env, &[7u8; 31]).into_val(&env);
+    let short_res = BytesN::<32>::try_from_val(&env, &short_val);
+    assert!(short_res.is_err());
+
+    let long_val: soroban_sdk::Val = Bytes::from_slice(&env, &[9u8; 33]).into_val(&env);
+    let long_res = BytesN::<32>::try_from_val(&env, &long_val);
+    assert!(long_res.is_err());
 }
 
 #[test]
@@ -428,6 +482,21 @@ fn test_init_success() {
             .unwrap()
     });
     assert_eq!(version, 1u32);
+}
+
+#[test]
+fn test_version_matches_contract_version() {
+    let env = Env::default();
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+
+    client.try_init(&admin, &operator).unwrap();
+
+    assert_eq!(client.version(), 1u32);
+    assert_eq!(client.version(), client.contract_version());
 }
 
 #[test]
@@ -992,4 +1061,217 @@ fn test_conversion_idempotency() {
     // Verify only one receipt exists
     let receipt = client.get_receipt(&tx_id_1).unwrap();
     assert_eq!(receipt.amount_usdc, 500_000);
+}
+
+// Deterministic event vectors (encoding/decoding)
+
+#[test]
+fn test_event_vector_init_event_exact_shape() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+
+    client.try_init(&admin, &operator).unwrap();
+
+    let events = env.events().all();
+    assert_eq!(events.len(), 1);
+
+    let event = events.get(0).unwrap();
+    let topics: soroban_sdk::Vec<soroban_sdk::Val> = event.1.clone();
+    assert_eq!(topics.len(), 2);
+
+    let contract_sym: Symbol = topics.get(0).unwrap().try_into_val(&env).unwrap();
+    let event_sym: Symbol = topics.get(1).unwrap().try_into_val(&env).unwrap();
+    assert_eq!(contract_sym, Symbol::new(&env, "transaction_receipt"));
+    assert_eq!(event_sym, Symbol::new(&env, "init"));
+
+    let data: (Address, Address, u32) = event.2.try_into_val(&env).unwrap();
+    assert_eq!(data, (admin, operator, 1u32));
+}
+
+#[test]
+fn test_event_vector_receipt_recorded_exact_shape() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    client.try_init(&admin, &operator).unwrap();
+
+    let input = ReceiptInput {
+        external_ref_source: Symbol::new(&env, "paystack"),
+        external_ref: String::from_str(&env, "vector_ref_001"),
+        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"),
+        amount_usdc: 1_000_000i128,
+        token: token.clone(),
+        deal_id: String::from_str(&env, "deal_vector"),
+        listing_id: None,
+        from: None,
+        to: None,
+        amount_ngn: None,
+        fx_rate_ngn_per_usdc: None,
+        fx_provider: None,
+        metadata_hash: None,
+    };
+
+    let tx_id = client
+        .try_record_receipt(&operator, &input)
+        .unwrap()
+        .unwrap();
+
+    let events = env.events().all();
+    assert_eq!(events.len(), 1);
+
+    let event = events.last().unwrap();
+    let topics: soroban_sdk::Vec<soroban_sdk::Val> = event.1.clone();
+    assert_eq!(topics.len(), 3);
+
+    let contract_sym: Symbol = topics.get(0).unwrap().try_into_val(&env).unwrap();
+    let event_sym: Symbol = topics.get(1).unwrap().try_into_val(&env).unwrap();
+    let event_tx_id: BytesN<32> = topics.get(2).unwrap().try_into_val(&env).unwrap();
+
+    assert_eq!(contract_sym, Symbol::new(&env, "transaction_receipt"));
+    assert_eq!(event_sym, Symbol::new(&env, "receipt_recorded"));
+    assert_eq!(event_tx_id, tx_id);
+
+    let data: Receipt = event.2.try_into_val(&env).unwrap();
+    assert_eq!(data.tx_id, tx_id);
+    assert_eq!(data.external_ref, tx_id);
+    assert_eq!(data.tx_type, Symbol::new(&env, "TENANT_REPAYMENT"));
+    assert_eq!(data.amount_usdc, 1_000_000i128);
+    assert_eq!(data.token, token);
+    assert_eq!(data.deal_id, String::from_str(&env, "deal_vector"));
+    assert_eq!(data.metadata_hash, None);
+}
+
+#[test]
+fn test_record_receipt_duplicate_transaction_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    client.try_init(&admin, &operator).unwrap();
+    let input = ReceiptInput {
+        external_ref_source: Symbol::new(&env, "paystack"),
+        external_ref: String::from_str(&env, "dup_ref_001"),
+        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"),
+        amount_usdc: 1_000_000i128,
+        token,
+        deal_id: String::from_str(&env, "deal_dup"),
+        listing_id: None,
+        from: None,
+        to: None,
+        amount_ngn: None,
+        fx_rate_ngn_per_usdc: None,
+        fx_provider: None,
+        metadata_hash: None,
+    };
+
+    client.try_record_receipt(&operator, &input).unwrap();
+
+    let err = client
+        .try_record_receipt(&operator, &input)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, ContractError::DuplicateTransaction);
+}
+
+#[test]
+fn test_record_receipt_external_ref_too_long_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    client.try_init(&admin, &operator).unwrap();
+
+    // 257-character external_ref exceeds the 256-char limit
+    let long_ref = "x".repeat(257);
+
+    let input = ReceiptInput {
+        external_ref_source: Symbol::new(&env, "paystack"),
+        external_ref: String::from_str(&env, &long_ref),
+        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"),
+        amount_usdc: 1_000_000i128,
+        token: token.clone(),
+        deal_id: String::from_str(&env, "deal_longref"),
+        listing_id: None,
+        from: None,
+        to: None,
+        amount_ngn: None,
+        fx_rate_ngn_per_usdc: None,
+        fx_provider: None,
+        metadata_hash: None,
+    };
+
+    let err = client
+        .try_record_receipt(&operator, &input)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, ContractError::InvalidExternalRef);
+
+    // Validation failures must not emit receipt events.
+    assert_eq!(env.events().all().len(), 0);
+}
+
+#[test]
+fn test_invalid_input_does_not_emit_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(TransactionReceiptContract, ());
+    let client = TransactionReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    client.init(&admin, &operator);
+
+    // Zero amount is invalid
+    let input = ReceiptInput {
+        external_ref_source: Symbol::new(&env, "paystack"),
+        external_ref: String::from_str(&env, "ref_invalid_amount"),
+        tx_type: Symbol::new(&env, "UNSTAKE"),
+        amount_usdc: 0,
+        token: token.clone(),
+        deal_id: String::from_str(&env, "deal_invalid"),
+        listing_id: None,
+        from: None,
+        to: None,
+        amount_ngn: None,
+        fx_rate_ngn_per_usdc: None,
+        fx_provider: None,
+        metadata_hash: None,
+    };
+
+    let err = client
+        .try_record_receipt(&operator, &input)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, ContractError::InvalidAmount);
+
+    // No receipt events should be emitted when validation fails
+    assert_eq!(env.events().all().len(), 0);
 }
