@@ -1,6 +1,6 @@
 ﻿cargo : warning: 
-unused import: 
-`TimelockError`
+unexpected `cfg` 
+condition name: `kani`
 At line:1 char:1
 + cargo check 
 --workspace 
@@ -13,95 +13,97 @@ Out-File  ...
     + CategoryInfo    
           : NotSpeci  
   fied: (warning: u   
- nused import: `Ti    
-melockError`:Stri    
-ng) [], RemoteExc    
-eption
+ nexpe...on name:     
+`kani`:String) []    
+, RemoteException
     + FullyQualifiedE 
    rrorId : NativeCo  
   mmandError
  
- --> timelock\src\inte
-gration_test.rs:3:43
-  |
-3 |     use 
-crate::{Timelock, 
-TimelockClient, 
-TimelockError};
-  |                   
-                      
-  ^^^^^^^^^^^^^
-  |
-  = note: `#[warn(unus
-ed_imports)]` on by 
+  --> transaction-rece
+ipt-contract\src\lib.r
+s:18:7
+   |
+18 | #[cfg(kani)]
+   |       ^^^^
+   |
+   = help: expected 
+names are: `docsrs`, 
+`feature`, and `test` 
+and 31 more
+   = help: consider 
+using a Cargo feature 
+instead
+   = help: or 
+consider adding in 
+`Cargo.toml` the 
+`check-cfg` lint 
+config for the lint:
+            
+[lints.rust]
+            
+unexpected_cfgs = { 
+level = "warn", 
+check-cfg = 
+['cfg(kani)'] }
+   = help: or 
+consider adding `print
+ln!("cargo::rustc-chec
+k-cfg=cfg(kani)");` 
+to the top of the 
+`build.rs`
+   = note: see <https:
+//doc.rust-lang.org/ni
+ghtly/rustc/check-cfg/
+cargo-specifics.html> 
+for more information 
+about checking 
+conditional 
+configuration
+   = note: `#[warn(une
+xpected_cfgs)]` on by 
 default
 
-warning: unused 
-variable: 
-`target_client`
-  --> timelock\src\int
-egration_test.rs:41:13
-   |
-41 |         let 
-target_client = MockTa
-rgetClient::new(env, 
-&target_id);
-   |             
-^^^^^^^^^^^^^ help: 
-if this is 
-intentional, prefix 
-it with an 
-underscore: 
-`_target_client`
-   |
-   = note: `#[warn(unu
-sed_variables)]` on 
-by default
+warning: unexpected 
+`cfg` condition name: 
+`kani`
+   --> transaction-rec
+eipt-contract\src\lib.
+rs:281:7
+    |
+281 | #[cfg(kani)]
+    |       ^^^^
+    |
+    = help: consider 
+using a Cargo feature 
+instead
+    = help: or 
+consider adding in 
+`Cargo.toml` the 
+`check-cfg` lint 
+config for the lint:
+             
+[lints.rust]
+             
+unexpected_cfgs = { 
+level = "warn", 
+check-cfg = 
+['cfg(kani)'] }
+    = help: or 
+consider adding `print
+ln!("cargo::rustc-chec
+k-cfg=cfg(kani)");` 
+to the top of the 
+`build.rs`
+    = note: see <https
+://doc.rust-lang.org/n
+ightly/rustc/check-cfg
+/cargo-specifics.html>
+ for more information 
+about checking 
+conditional 
+configuration
 
-warning: unused 
-variable: `tx_hash`
-  --> timelock\src\tes
-t.rs:57:13
-   |
-57 |         let 
-tx_hash = 
-client.queue(&admin, 
-&target, &function, 
-&args, &delay);
-   |             
-^^^^^^^ help: if this 
-is intentional, 
-prefix it with an 
-underscore: `_tx_hash`
-
-warning: unused 
-variable: 
-`exec_result`
-  --> timelock\src\tes
-t.rs:69:13
-   |
-69 |         let 
-exec_result = client.t
-ry_execute(&target, 
-&function, &args, 
-&eta);
-   |             
-^^^^^^^^^^^ help: if 
-this is intentional, 
-prefix it with an 
-underscore: 
-`_exec_result`
-
-warning: `timelock` 
-(lib test) generated 
-4 warnings (run 
-`cargo fix --lib -p 
-timelock --tests` to 
-apply 1 suggestion)
-    Checking 
-deal_escrow v0.1.0 (C:
-\Users\USER\monorepo\c
-ontracts\deal_escrow)
 warning: unexpected 
 `cfg` condition name: 
 `kani`
@@ -194,103 +196,21 @@ configuration
 xpected_cfgs)]` on by 
 default
 
-warning: 
-`staking_pool` (lib) 
-generated 1 warning
-warning: 
-`rent_wallet` (lib) 
-generated 1 warning
-warning: unexpected 
-`cfg` condition name: 
-`kani`
-  --> transaction-rece
-ipt-contract\src\lib.r
-s:18:7
-   |
-18 | #[cfg(kani)]
-   |       ^^^^
-   |
-   = help: expected 
-names are: `docsrs`, 
-`feature`, and `test` 
-and 31 more
-   = help: consider 
-using a Cargo feature 
-instead
-   = help: or 
-consider adding in 
-`Cargo.toml` the 
-`check-cfg` lint 
-config for the lint:
-            
-[lints.rust]
-            
-unexpected_cfgs = { 
-level = "warn", 
-check-cfg = 
-['cfg(kani)'] }
-   = help: or 
-consider adding `print
-ln!("cargo::rustc-chec
-k-cfg=cfg(kani)");` 
-to the top of the 
-`build.rs`
-   = note: see <https:
-//doc.rust-lang.org/ni
-ghtly/rustc/check-cfg/
-cargo-specifics.html> 
-for more information 
-about checking 
-conditional 
-configuration
-   = note: `#[warn(une
-xpected_cfgs)]` on by 
-default
-
-warning: unexpected 
-`cfg` condition name: 
-`kani`
-   --> transaction-rec
-eipt-contract\src\lib.
-rs:281:7
-    |
-281 | #[cfg(kani)]
-    |       ^^^^
-    |
-    = help: consider 
-using a Cargo feature 
-instead
-    = help: or 
-consider adding in 
-`Cargo.toml` the 
-`check-cfg` lint 
-config for the lint:
-             
-[lints.rust]
-             
-unexpected_cfgs = { 
-level = "warn", 
-check-cfg = 
-['cfg(kani)'] }
-    = help: or 
-consider adding `print
-ln!("cargo::rustc-chec
-k-cfg=cfg(kani)");` 
-to the top of the 
-`build.rs`
-    = note: see <https
-://doc.rust-lang.org/n
-ightly/rustc/check-cfg
-/cargo-specifics.html>
- for more information 
-about checking 
-conditional 
-configuration
-
+    Checking 
+deal_escrow v0.1.0 (C:
+\Users\USER\monorepo\c
+ontracts\deal_escrow)
 warning: `transaction-
 receipt-contract` 
 (lib) generated 2 
 warnings
+warning: 
+`staking_pool` (lib) 
+generated 1 warning
+warning: 
+`rent_wallet` (lib 
+test) generated 1 
+warning
 warning: unexpected 
 `cfg` condition name: 
 `kani`
@@ -345,17 +265,17 @@ warning:
 (lib) generated 1 
 warning
 warning: 
-`rent_wallet` (lib 
-test) generated 1 
-warning (1 duplicate)
+`rent_wallet` (lib) 
+generated 1 warning 
+(1 duplicate)
 warning: unexpected 
 `cfg` condition name: 
 `kani`
  --> staking_rewards\s
 rc\formal_properties.r
-s:9:16
+s:8:16
   |
-9 | ...ttr(kani, ka...
+8 | ...ttr(kani, ka...
   |        ^^^^
   |
   = help: consider 
@@ -388,44 +308,6 @@ conditional
 configuration
 
 warning: unused 
-import: `crate::Stakin
-gRewards`
- --> staking_rewards\s
-rc\formal_properties.r
-s:4:9
-  |
-4 | ...se 
-crate::StakingRewards;
-  |       
-^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: `#[warn(unus
-ed_imports)]` on by 
-default
-
-warning: unused 
-imports: 
-`MockAuthInvoke` and 
-`MockAuth`
- --> staking_rewards\s
-rc\formal_properties.r
-s:5:48
-  |
-5 | ..._, MockAuth, 
-MockAuthInvoke};
-  |       ^^^^^^^^  
-^^^^^^^^^^^^^^
-
-warning: unused 
-import: `IntoVal`
- --> staking_rewards\s
-rc\formal_properties.r
-s:6:37
-  |
-6 | ...v, IntoVal};
-  |       ^^^^^^^
-
-warning: unused 
 imports: 
 `MockAuthInvoke` and 
 `MockAuth`
@@ -436,26 +318,84 @@ imports:
 MockAuthInvoke};
     |       ^^^^^^^^  
 ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(un
+used_imports)]` on by 
+default
+
+warning: unused 
+import: 
+`TimelockError`
+ --> timelock\src\inte
+gration_test.rs:3:43
+  |
+3 |     use 
+crate::{Timelock, 
+TimelockClient, 
+TimelockError};
+  |                   
+                      
+  ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unus
+ed_imports)]` on by 
+default
 
 warning: unused 
 variable: 
-`contract_id`
-  --> staking_rewards\
-src\formal_properties.
-rs:12:14
+`target_client`
+  --> timelock\src\int
+egration_test.rs:41:13
    |
-12 | ...t 
-(contract_id, c...
-   |       
-^^^^^^^^^^^ help: if 
-this is intentional, 
-prefix it with an 
+41 |         let 
+target_client = MockTa
+rgetClient::new(env, 
+&target_id);
+   |             
+^^^^^^^^^^^^^ help: 
+if this is 
+intentional, prefix 
+it with an 
 underscore: 
-`_contract_id`
+`_target_client`
    |
    = note: `#[warn(unu
 sed_variables)]` on 
 by default
+
+warning: unused 
+variable: `tx_hash`
+  --> timelock\src\tes
+t.rs:57:13
+   |
+57 |         let 
+tx_hash = 
+client.queue(&admin, 
+&target, &function, 
+&args, &delay);
+   |             
+^^^^^^^ help: if this 
+is intentional, 
+prefix it with an 
+underscore: `_tx_hash`
+
+warning: unused 
+variable: 
+`exec_result`
+  --> timelock\src\tes
+t.rs:69:13
+   |
+69 |         let 
+exec_result = client.t
+ry_execute(&target, 
+&function, &args, 
+&eta);
+   |             
+^^^^^^^^^^^ help: if 
+this is intentional, 
+prefix it with an 
+underscore: 
+`_exec_result`
 
 warning: `transaction-
 receipt-contract` 
@@ -465,12 +405,18 @@ duplicates)
 warning: 
 `staking_rewards` 
 (lib test) generated 
-7 warnings (1 
+3 warnings (1 
 duplicate) (run 
 `cargo fix --lib -p 
 staking_rewards 
---tests` to apply 4 
-suggestions)
+--tests` to apply 1 
+suggestion)
+warning: `timelock` 
+(lib test) generated 
+4 warnings (run 
+`cargo fix --lib -p 
+timelock --tests` to 
+apply 1 suggestion)
 error[E0046]: not all 
 trait items 
 implemented, missing: 
