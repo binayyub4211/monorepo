@@ -11,7 +11,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env, String, Symbol};
 #[test]
 fn test_integration_init_record_query() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -116,7 +116,7 @@ fn test_integration_init_record_query() {
 #[test]
 fn test_integration_authorization_flow() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -166,7 +166,7 @@ fn test_integration_authorization_flow() {
 #[test]
 fn test_integration_pause_flow() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -223,7 +223,7 @@ fn test_integration_pause_flow() {
 #[test]
 fn test_integration_deal_queries_and_pagination() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -275,7 +275,7 @@ fn test_integration_deal_queries_and_pagination() {
 #[test]
 fn test_integration_invalid_tx_type_rejected() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);

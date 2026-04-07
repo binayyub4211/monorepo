@@ -51,7 +51,7 @@ fn test_generate_tx_id_golden_vector_v1() {
 #[test]
 fn test_metadata_hash_golden_vector_v1() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -101,7 +101,7 @@ fn test_metadata_hash_golden_vector_v1() {
 #[test]
 fn test_metadata_hash_invalid_rejected() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -214,7 +214,7 @@ fn test_receipt_struct_creation() {
 
     let receipt = Receipt {
         tx_id: tx_id.clone(),
-        tx_type: Symbol::new(&env, "rent_payment"),
+        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"),
         amount_usdc: 10_000_000_000, // 1000 USDC (7 decimals)
         token: token.clone(),
         deal_id: deal_id.clone(),
@@ -447,7 +447,7 @@ fn test_generate_tx_id_different_references_different_hashes() {
 #[test]
 fn test_init_success() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -502,7 +502,7 @@ fn test_version_matches_contract_version() {
 #[test]
 fn test_init_already_initialized() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -538,7 +538,7 @@ fn test_init_already_initialized() {
 #[test]
 fn test_init_with_same_admin_and_operator() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let address = Address::generate(&env);
@@ -563,7 +563,7 @@ fn test_init_with_same_admin_and_operator() {
 #[test]
 fn test_pause_success() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -588,7 +588,7 @@ fn test_pause_success() {
 #[test]
 fn test_pause_not_authorized() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -621,7 +621,7 @@ fn test_pause_not_authorized() {
 #[test]
 fn test_pause_idempotent() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -655,7 +655,7 @@ fn test_pause_idempotent() {
 #[test]
 fn test_unpause_success() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -689,7 +689,7 @@ fn test_unpause_success() {
 #[test]
 fn test_unpause_not_authorized() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -725,7 +725,7 @@ fn test_unpause_not_authorized() {
 #[test]
 fn test_unpause_idempotent() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -759,7 +759,7 @@ fn test_unpause_idempotent() {
 #[test]
 fn test_pause_unpause_cycle() {
     let env = Env::default();
-    let contract_id = env.register(TransactionReceiptContract, ());
+    let contract_id = env.register_contract(None, TransactionReceiptContract);
     let client = TransactionReceiptContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -835,7 +835,7 @@ fn test_golden_vectors() {
         StdString::from_utf8(out.to_vec()).expect("valid utf8")
     }
 
-    let raw = include_str!("../../../test-vectors.json");
+    let raw = include_str!("../../../../test-vectors.json");
     let parsed: GoldenVectorsFile = serde_json::from_str(raw).expect("valid test-vectors.json");
 
     for (i, v) in parsed.golden_test_vectors.iter().enumerate() {

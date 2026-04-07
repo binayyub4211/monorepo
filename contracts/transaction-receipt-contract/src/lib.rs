@@ -49,7 +49,7 @@ pub struct ReceiptInput {
     pub external_ref_source: Symbol,
     /// The external payment reference string
     pub external_ref: String,
-    /// Transaction type (e.g., "rent_payment", "deposit", "refund")
+    /// Transaction type (e.g., "TENANT_REPAYMENT", "STAKE", "CONVERSION")
     pub tx_type: Symbol,
     /// Transaction amount in USDC (canonical amount, must be positive)
     pub amount_usdc: i128,
@@ -81,10 +81,8 @@ fn validate_external_ref(
     external_ref_source: &Symbol,
     external_ref: &String,
 ) -> Result<(), ContractError> {
-    use alloc::string::ToString;
-
-    extern crate alloc;
     use alloc::string::String as StdString;
+    use alloc::string::ToString;
 
     let source_str: StdString = external_ref_source.to_string();
     let source_trimmed = source_str.trim();
@@ -128,7 +126,6 @@ fn canonical_metadata_payload_v1(
 ) -> soroban_sdk::Bytes {
     use soroban_sdk::Bytes;
 
-    extern crate alloc;
     use alloc::format;
     use alloc::string::String as StdString;
     use alloc::string::ToString;
@@ -815,7 +812,6 @@ fn generate_tx_id(
 
     // Convert Symbol to string for validation
     // We need to use the alloc feature for string manipulation
-    extern crate alloc;
     use alloc::string::String as StdString;
     use alloc::string::ToString;
 
