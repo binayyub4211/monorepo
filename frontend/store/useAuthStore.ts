@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { logger } from "./index";
+import { logger } from "./logger";
 import { getToken, setToken as saveToken, clearToken } from "@/lib/auth";
 
 interface User {
@@ -40,7 +40,7 @@ const useAuthStore = create<AuthState>()(
         },
       }),
       {
-        name: "sheltaflex-auth-storage",
+        name: "shelterflex-auth-storage",
         storage: createJSONStorage(() => localStorage),
         version: 1,
       }

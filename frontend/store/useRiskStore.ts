@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { logger } from "./index";
+import { logger } from "./logger";
 import { getRiskState } from "@/lib/risk";
 
 interface RiskState {
@@ -59,7 +59,7 @@ const useRiskStore = create<RiskState>()(
         }),
       }),
       {
-        name: "sheltaflex-risk-storage",
+        name: "shelterflex-risk-storage",
         storage: createJSONStorage(() => localStorage),
         version: 1,
       }

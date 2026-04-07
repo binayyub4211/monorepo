@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { logger } from "./index";
+import { logger } from "./logger";
 
 export interface CartItem {
   id: string;
@@ -105,7 +105,7 @@ const useCartStore = create<CartState>()(
           get().items.reduce((sum, item) => sum + item.amount, 0),
       }),
       {
-        name: "sheltaflex-cart-storage",
+        name: "shelterflex-cart-storage",
         storage: createJSONStorage(() => localStorage),
         version: 1,
         // Don't persist in-flight ops across reloads
