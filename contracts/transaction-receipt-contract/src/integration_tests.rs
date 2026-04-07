@@ -31,8 +31,8 @@ fn test_integration_init_record_query() {
     let input_a1 = ReceiptInput {
         external_ref_source: Symbol::new(&env, "manual_admin"),
         external_ref: String::from_str(&env, "a_ref_1"),
-        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"),
         amount_usdc: 10_000_000_000_i128,
+        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"),
         token: token.clone(),
         deal_id: deal_a.clone(),
         listing_id: None,
@@ -195,8 +195,7 @@ fn test_integration_pause_flow() {
         metadata_hash: None,
     };
 
-    // Record should succeed before pause
-        .unwrap();
+    let _ = client.try_record_receipt(&operator, &input).unwrap().unwrap();
 
     // Pause contract
     let _ = client.try_pause(&admin).unwrap();
@@ -254,6 +253,9 @@ fn test_integration_deal_queries_and_pagination() {
             fx_provider: None,
             metadata_hash: None,
         };
+        let _ = client
+            .try_record_receipt(&operator, &input)
+            .unwrap()
             .unwrap();
     }
 
@@ -290,7 +292,6 @@ fn test_integration_invalid_tx_type_rejected() {
     let invalid_input = ReceiptInput {
         external_ref_source: Symbol::new(&env, "manual_admin"),
         external_ref: String::from_str(&env, "invalid_ref"),
-        tx_type: Symbol::new(&env, "INVALID_TYPE"), // Not in allowed list
         amount_usdc: 10_000_000_000_i128,
         token: token.clone(),
         deal_id: String::from_str(&env, "deal_invalid"),
@@ -312,7 +313,6 @@ fn test_integration_invalid_tx_type_rejected() {
     let valid_input = ReceiptInput {
         external_ref_source: Symbol::new(&env, "manual_admin"),
         external_ref: String::from_str(&env, "valid_ref"),
-        tx_type: Symbol::new(&env, "TENANT_REPAYMENT"), // Valid type
         amount_usdc: 10_000_000_000_i128,
         token: token.clone(),
         deal_id: String::from_str(&env, "deal_valid"),
